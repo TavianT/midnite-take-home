@@ -1,7 +1,13 @@
+from enum import Enum
 from pydantic import BaseModel
 
+
+class Types(Enum):
+    withdrawal = "withdrawal"
+    deposit = "deposit"
+
 class EventBase(BaseModel):
-    type: str
+    type: Types
     amount: str
     user_id: int
     time: int

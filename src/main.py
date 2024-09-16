@@ -2,7 +2,7 @@ import crud, models, schemas
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 from database import SessionLocal, engine
-from process import check_withdrawal_over_one_hundred, check_three_consecutive_withdrawals, check_three_consecutive_deposits_within_parameter, check_total_amount_deposited_within_paramter
+from process import check_withdrawal_over_one_hundred, check_three_consecutive_withdrawals, check_three_consecutive_deposits_within_parameter, check_total_amount_deposited_within_paramter, validation
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -17,32 +17,35 @@ def get_db():
 
 @app.post("/event")
 def post_event(event: schemas.EventCreate, db: Session = Depends(get_db)):
+    # Validate request
+    validation(event, db)
     # Add event to database
-    event_times = crud.get_last_user_event_time(db, event.user_id)[0]
-    if any(event.time <= event_time for event_time in event_times):
-        raise HTTPException(status_code=400, detail=f"event time must be greater than the last event time")
-
     db_event = crud.create_event(db, event)
     alert = False
     alert_codes = []
     user_id = event.user_id
 
+    # Check if the event type is withdrawal and amount is more than 100
     func_response = check_withdrawal_over_one_hundred(event)
+    print(func_response)
     if func_response[0] == True:
         alert = func_response[0]
         alert_codes.append(func_response[1])
 
+    # Check if 3 withdrawals have been made in a row
     func_response = check_three_consecutive_withdrawals(user_id, db)
     if func_response[0] == True:
         alert = func_response[0]
         alert_codes.append(func_response[1])
 
+    # Check if 3 deposits have been made in a row with each greater than the last
     func_response = check_three_consecutive_deposits_within_parameter(user_id, db)
     if func_response[0] == True:
         alert = func_response[0]
         alert_codes.append(func_response[1])
 
-    func_response = check_total_amount_deposited_within_paramter(user_id, event.time, event.type, db)
+    # Check if total amount deposited in a 30 second windows is greater than 200
+    func_response = check_total_amount_deposited_within_paramter(user_id, event.time, event.type.value, db)
     if func_response[0] == True:
         alert = func_response[0]
         alert_codes.append(func_response[1])
