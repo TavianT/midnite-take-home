@@ -11,7 +11,7 @@ Take home technical exercise for Midnite
 
  ## tests
  - Ensure Python 3.10+ is installed
- - (Optional) create venv
+ - (Optional) create venv and activate it
  - execute the line `pip install -r requirements.txt`
  - go into the tests folder
  - run `pytest`
